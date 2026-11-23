@@ -58,6 +58,10 @@ fn run() -> Result<()> {
         return Ok(());
     }
     let command = args[0].clone();
+    if args[1..].iter().any(|a| a == "--help" || a == "-h") {
+        print!("{}", command_help(&command));
+        return Ok(());
+    }
     let opts = Options::parse(&args[1..])?;
 
     match command.as_str() {
@@ -73,6 +77,65 @@ fn run() -> Result<()> {
             bail!("commande inconnue : {other}");
         }
     }
+}
+
+/// Aide d'une sous-commande.
+fn command_help(command: &str) -> String {
+    let body = match command {
+        "init" => {
+            "  0ass init [--project <chemin>]
+
+  Écrit un 0ass.toml à compléter (profil, mesure, vérifications)."
+        }
+        "scan" => {
+            "  0ass scan [--project <chemin>] [--no-bench]
+
+  Scanne le projet, écrit le rapport hors du dépôt.
+  --no-bench : scan statique seul, sans exécution du banc."
+        }
+        "report" => {
+            "  0ass report [--project <chemin>] [--json]
+
+  Affiche le dernier rapport (Markdown, ou JSON avec --json)."
+        }
+        "bench" => {
+            "  0ass bench --id <A1> --patch <fichier.patch> [--runs <n>]
+
+  Mesure un patch sans l'approuver (comparaison A/B entrelacée)."
+        }
+        "approve" => {
+            "  0ass approve --id <A1> --patch <fichier.patch> [--runs <n>] [--branch <nom>]
+
+  Applique le patch dans un worktree isolé, vérifie la compatibilité,
+  mesure, puis crée un commit (un commit par patch).
+  Un patch incompatible n'est jamais commité."
+        }
+        "merge" => {
+            "  0ass merge [--project <chemin>]
+
+  Fusion fast-forward de la branche 0ass/<date> dans la branche courante.
+  Le git push reste à ta main."
+        }
+        "gui" => {
+            "  0ass gui
+
+  Ouvre l'interface de revue (table des candidats, détail, approbation, fusion)."
+        }
+        _ => return format!("{USAGE}"),
+    };
+    format!(
+        "{body}
+
+OPTIONS COMMUNS
+  --project <chemin>    Racine du projet (défaut : répertoire courant)
+  --report <chemin>     Dossier de rapport
+  --json                Sortie JSON (report)
+  --no-bench            Ne pas exécuter le banc
+  --runs <n>            Nombre d'exécutions mesurées (défaut : 30)
+  --id <A1>             Identifiant du candidat
+  --patch <fichier>     Fichier de patch
+  --branch <nom>        Branche de travail"
+    )
 }
 
 /// Options analysées.
