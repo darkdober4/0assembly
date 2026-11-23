@@ -1,0 +1,21 @@
+[workspace]
+resolver = "2"
+members = ["crates/zeroass_core", "crates/zeroass_engine", "crates/zeroass_cli", "crates/zeroass_gui"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+license = "MIT"
+repository = "https://github.com/darkdober4/0ass"
+description = "0ass — recherche et verification de fonctions convertibles en assembleur"
+
+[workspace.dependencies]
+zeroass_core = { path = "crates/zeroass_core" }
+zeroass_engine = { path = "crates/zeroass_engine" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+regex = "1"
+anyhow = "1"
+thiserror = "1"

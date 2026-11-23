@@ -1,0 +1,19 @@
+[package]
+name = "zeroass_gui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Interface graphique 0ass (egui/eframe)"
+
+[[bin]]
+name = "0ass-gui"
+path = "src/main.rs"
+
+[dependencies]
+zeroass_core.workspace = true
+zeroass_engine.workspace = true
+eframe = "0.29"
+egui = "0.29"
+egui_extras = "0.29"
+anyhow.workspace = true
+serde_json.workspace = true

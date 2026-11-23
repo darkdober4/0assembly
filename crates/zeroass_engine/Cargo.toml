@@ -1,0 +1,12 @@
+[package]
+name = "zeroass_engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Moteur 0ass : construction, mesure, worktree git, patches"
+
+[dependencies]
+zeroass_core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true

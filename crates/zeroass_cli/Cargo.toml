@@ -1,0 +1,16 @@
+[package]
+name = "zeroass_cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "CLI 0ass"
+
+[[bin]]
+name = "0ass"
+path = "src/main.rs"
+
+[dependencies]
+zeroass_core.workspace = true
+zeroass_engine.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true
