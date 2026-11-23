@@ -121,7 +121,7 @@ fn command_help(command: &str) -> String {
 
   Ouvre l'interface de revue (table des candidats, détail, approbation, fusion)."
         }
-        _ => return format!("{USAGE}"),
+        _ => return USAGE.to_string(),
     };
     format!(
         "{body}
