@@ -21,7 +21,18 @@ pub struct ProjectProfile {
     #[serde(default)]
     pub verify: VerifyInfo,
     #[serde(default)]
+    pub asm: Option<AsmInfo>,
+    #[serde(default)]
     pub profile: PlatformProfiles,
+}
+
+/// Commande d'émission de l'assembleur (pour voir ce que produit le
+/// compilateur pour la fonction visée).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AsmInfo {
+    /// Commande qui produit un fichier d'assembleur (`.s`).
+    #[serde(default)]
+    pub command: String,
 }
 
 /// Commandes de vérification exécutées avant et après chaque patch.

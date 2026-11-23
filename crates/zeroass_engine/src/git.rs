@@ -112,6 +112,50 @@ pub fn changed_files(worktree: &Path) -> Vec<String> {
     }
 }
 
+/// Copie les fichiers cibles d'un patch vers un **dossier de backup centralisé**.
+///
+/// Les fichiers ne sont copiés que s'ils n'existent pas déjà dans le backup :
+/// on conserve ainsi la version la plus ancienne (avant toute modification).
+/// Les fichiers nouvellement créés n'ont pas de version antérieure à sauvegarder.
+pub fn backup_patch_targets(
+    worktree: &Path,
+    patch: &Path,
+    backup_dir: &Path,
+) -> Result<Vec<String>> {
+    let content = std::fs::read_to_string(patch)
+        .with_context(|| format!("lecture du patch {}", patch.display()))?;
+    let mut backed_up = Vec::new();
+
+    for line in content.lines() {
+        let Some(rest) = line.strip_prefix("diff --git ") else {
+            continue;
+        };
+        let parts: Vec<&str> = rest.split_whitespace().collect();
+        let Some(b_path) = parts.iter().find(|p| p.starts_with("b/")) else {
+            continue;
+        };
+        let rel = &b_path[2..];
+        let src = worktree.join(rel);
+        if !src.exists() {
+            continue;
+        }
+        let dst = backup_dir.join(rel);
+        // Déduplication : on garde la toute première version capturée.
+        if dst.exists() {
+            continue;
+        }
+        if let Some(parent) = dst.parent() {
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("création du dossier de backup {}", parent.display()))?;
+        }
+        std::fs::copy(&src, &dst)
+            .with_context(|| format!("backup de {} vers {}", rel, dst.display()))?;
+        backed_up.push(rel.to_string());
+    }
+
+    Ok(backed_up)
+}
+
 /// Le patch est-il déjà appliqué dans le worktree ?
 ///
 /// On le détecte en cherchant à l'appliquer **à l'envers** : si l'annulation

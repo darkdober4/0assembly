@@ -5,6 +5,7 @@
 //! - `scan`      : scan multi-langages + mesure + rapport
 //! - `report`    : affiche le dernier rapport (Markdown ou JSON)
 //! - `bench`     : compare un patch appliqué (A/B entrelacé)
+//! - `asm`       : affiche l'assembleur produit pour une fonction
 //! - `approve`   : approuve un candidat, mesure, commit dans le worktree
 //! - `merge`     : fusion fast-forward de la branche 0ass dans la branche courante
 //! - `gui`       : lance l'interface graphique
@@ -15,6 +16,7 @@ use std::process::Command;
 use anyhow::{bail, Context, Result};
 use zeroass_core::manifest::{Candidate, Manifest};
 use zeroass_core::profile::ProjectProfile;
+use zeroass_engine::asmview;
 use zeroass_engine::campaign::{self, CampaignOptions};
 use zeroass_engine::git;
 use zeroass_engine::review;
@@ -31,6 +33,7 @@ COMMANDES
   scan                  Scanne le projet, mesure, écrit le rapport
   report                Affiche le dernier rapport (Markdown par défaut, --json)
   bench                 Mesure un patch : 0ass bench --id A1 --patch p.patch
+  asm                   Assembleur du compilateur : 0ass asm --id A1
   approve               Approuve un candidat, mesure et commit (worktree isolé)
   merge                 Fusion fast-forward de la branche 0ass dans la branche courante
   gui                   Lance l'interface graphique
@@ -69,6 +72,7 @@ fn run() -> Result<()> {
         "scan" => cmd_scan(&opts),
         "report" => cmd_report(&opts),
         "bench" => cmd_bench(&opts),
+        "asm" => cmd_asm(&opts),
         "approve" => cmd_approve(&opts),
         "merge" => cmd_merge(&opts),
         "gui" => cmd_gui(),
@@ -109,6 +113,12 @@ fn command_help(command: &str) -> String {
   Applique le patch dans un worktree isolé, vérifie la compatibilité,
   mesure, puis crée un commit (un commit par patch).
   Un patch incompatible n'est jamais commité."
+        }
+        "asm" => {
+            "  0ass asm --id <A1> [--project <chemin>]
+
+  Affiche l'assembleur que le compilateur produit pour la fonction du
+  candidat : la référence pour écrire (ou vérifier) une version asm!."
         }
         "merge" => {
             "  0ass merge [--project <chemin>]
@@ -364,6 +374,33 @@ fn cmd_merge(opts: &Options) -> Result<()> {
     let report_dir = campaign::latest_report(&root)?;
     let message = review::merge_ff(&opts.project, &report_dir)?;
     println!("{message}");
+    Ok(())
+}
+
+/// `0ass asm` : affiche l'assembleur produit par le compilateur pour la
+/// fonction d'un candidat (la référence pour écrire une version `asm!`).
+fn cmd_asm(opts: &Options) -> Result<()> {
+    let id = opts
+        .id
+        .clone()
+        .ok_or_else(|| anyhow::anyhow!("--id <A1> est requis"))?;
+    let root = report_root(opts);
+    let report_dir = campaign::latest_report(&root)?;
+    let manifest = campaign::load_manifest(&report_dir)?;
+    let candidate = find_candidate(&manifest, &id)?;
+    let profile = ProjectProfile::load_or_default(&opts.project);
+    let result = asmview::emit_assembly(&profile, &opts.project, &candidate.fn_name)?;
+    println!("fonction : {}", result.symbol);
+    println!("commande : {}", result.command);
+    if let Some(file) = &result.file {
+        println!("fichier  : {}", file.display());
+    }
+    if result.missing {
+        println!("(fonction introuvable dans l'assembleur généré)");
+        return Ok(());
+    }
+    println!();
+    println!("{}", result.assembly);
     Ok(())
 }
 

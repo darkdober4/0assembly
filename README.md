@@ -82,6 +82,9 @@ runs = 30
 check = ["cargo check"]       # l'interface reste compatible ?
 test  = ["cargo test"]        # le comportement reste le même ?
 
+# [asm]
+# command = "cargo rustc --release -- --emit asm"   # assemblage de référence
+
 # [bench]
 # command = "cargo bench"
 
@@ -172,6 +175,7 @@ signal principal, et on n'atteint jamais l'assembleur sans mesure.
 0ass scan                       scan statique (+ banc si mesurable)
 0ass report [--json]            relit le dernier rapport
 0ass bench --id A1 --patch p    mesure un patch sans approuver
+0ass asm --id A1                 assembleur du compilateur pour la fonction
 0ass approve --id A1 --patch p  vérifie, mesure, commite (worktree isolé)
 0ass merge                      fusion fast-forward dans la branche courante
 0ass gui                        interface de revue
@@ -183,14 +187,35 @@ signal principal, et on n'atteint jamais l'assembleur sans mesure.
 
 `0ass gui` ouvre une fenêtre à trois zones :
 
-- **en haut** : le projet, les campagnes, le bouton *Merge fast-forward dans
+- **en haut** : le projet (champ éditable), le bouton **…** qui ouvre le
+  navigateur de dossiers, les campagnes, le bouton *Merge fast-forward dans
   main* ;
 - **à gauche** : la table des candidats (filtrable), avec le statut et le gain ;
 - **au centre** : le détail d'un candidat — signaux, stratégie, risque, mesure,
   et l'état de la compatibilité (signature / repli / vérifications).
 
-Les actions longues (scan, approbation, fusion) tournent en arrière-plan :
-l'interface ne se fige pas.
+### Changer de projet
+
+Le bouton **…** de la barre du haut ouvre un navigateur : navigation dans les
+dossiers, raccourcis vers les lecteurs (Windows) ou la racine (Unix), et un
+champ de chemin pour taper l'emplacement exact. Changer de projet recalcule le
+dossier de rapport, recharge le manifeste et rouvre le dernier rapport de ce
+projet — sans relancer l'application.
+
+### Les trois boutons du détail
+
+| Bouton | Effet |
+| --- | --- |
+| **Mesurer (A/B, sans commit)** | applique le patch dans le worktree isolé, compile les deux variantes, lance la comparaison A/B entrelacée et consigne la mesure. Rien n'est commité. |
+| **Assembly** | demande au compilateur l'assembleur de la fonction (`cargo rustc -- --emit asm`) et l'affiche dans une fenêtre (copier dans le presse-papiers possible). C'est la **référence** pour écrire ou vérifier une version `asm!`. |
+| **Approuver** | vérifie la compatibilité (signature, repli portable, `[verify]`), mesure, puis crée **un commit** par patch. Un patch incompatible n'est jamais commité. |
+
+Si la fonction est inlinée par l'optimiseur, 0ass recompile avec
+`-C opt-level=0` pour obtenir un bloc d'assembleur dédié et le signale.
+
+Les actions longues (scan, mesure, approbation, fusion, assemblage) tournent
+en arrière-plan : l'interface ne se fige pas. Une tâche qui panique est
+rattrapée et affichée dans la barre d'état.
 
 ---
 

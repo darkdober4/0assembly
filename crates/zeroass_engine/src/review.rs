@@ -121,6 +121,10 @@ pub fn approve(
         git::reset_worktree(&worktree)?;
     }
     let already_applied = git::patch_applied(&worktree, patch);
+    if !already_applied {
+        let backup_dir = report_dir.join("backups");
+        let _ = git::backup_patch_targets(&worktree, patch, &backup_dir);
+    }
     let touched = if already_applied {
         git::changed_files(&worktree)
     } else {
@@ -212,6 +216,69 @@ pub fn approve(
         measurement,
         compatibility,
         message: "approuvé — reste à fusionner (le push reste à ta main)".into(),
+    })
+}
+
+/// Mesure un patch **sans** l'approuver.
+///
+/// Le patch est appliqué dans le worktree isolé, les deux variantes sont
+/// compilées, puis la comparaison A/B entrelacée est faite. La mesure est
+/// consignée dans le manifeste ; rien n'est commité.
+pub fn measure_patch(
+    project: &Path,
+    report_dir: &Path,
+    id: &str,
+    patch: &Path,
+    runs: Option<u32>,
+) -> Result<ApproveOutcome> {
+    let mut manifest = campaign::load_manifest(report_dir)?;
+    let candidate = manifest
+        .candidates
+        .iter()
+        .find(|c| c.id == id)
+        .cloned()
+        .ok_or_else(|| anyhow::anyhow!("candidat inconnu : {id}"))?;
+    let profile = ProjectProfile::load_or_default(project);
+    let (worktree, branch_name) = prepare_worktree(project, report_dir, None)?;
+    let base_branch = git::current_branch(project)?;
+    if git::commits_since(&worktree, &base_branch) == 0 {
+        git::reset_worktree(&worktree)?;
+    }
+    let already = git::patch_applied(&worktree, patch);
+    if !already {
+        let backup_dir = report_dir.join("backups");
+        let _ = git::backup_patch_targets(&worktree, patch, &backup_dir);
+        git::apply_patch(&worktree, patch)?;
+    }
+
+    if !profile.build.command.trim().is_empty() {
+        let base_spec = CommandSpec::new(profile.build.command.clone(), project);
+        runner::capture(&base_spec)?;
+        let spec = CommandSpec::new(profile.build.command.clone(), &worktree);
+        runner::capture(&spec)?;
+    }
+
+    let measurement = measure_ab(&profile, project, &worktree, runs)?;
+    let message = match &measurement {
+        Some(m) => format!(
+            "{:.2} ms -> {:.2} ms ({:+.1} %) · bruit {:.1} % · MDE {:.1} %",
+            m.before_ms, m.after_ms, m.local_gain_pct, m.mad_pct, m.mde_pct
+        ),
+        None => "aucune commande de mesure : renseigne [run].command dans 0ass.toml".to_string(),
+    };
+
+    if let Some(c) = manifest.candidates.iter_mut().find(|c| c.id == id) {
+        c.measurement = measurement.clone();
+    }
+    save_manifest(report_dir, &manifest)?;
+
+    Ok(ApproveOutcome {
+        id: id.to_string(),
+        branch: branch_name,
+        commit: None,
+        measurement,
+        compatibility: candidate.compatibility,
+        message,
     })
 }
 

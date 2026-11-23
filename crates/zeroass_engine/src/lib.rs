@@ -3,6 +3,7 @@
 //! Le moteur ne modifie jamais le projet de l'utilisateur sans validation
 //! humaine explicite, et ne pousse jamais rien.
 
+pub mod asmview;
 pub mod campaign;
 pub mod git;
 pub mod review;
