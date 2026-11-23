@@ -1,5 +1,8 @@
 # 0ass
 
+[![CI](https://github.com/darkdober4/0assembly/actions/workflows/ci.yml/badge.svg)](https://github.com/darkdober4/0assembly/actions/workflows/ci.yml)
+[![Licence](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+
 **0ass** repère, dans n'importe quel programme, les fonctions qui peuvent
 gagner en vitesse — réécriture portable, SIMD, ou même assembleur — puis
 **mesure** chaque proposition avant de la pousser.
