@@ -7,7 +7,7 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.82"
 license = "MIT"
-repository = "https://github.com/darkdober4/0ass"
+repository = "https://github.com/darkdober4/0assembly"
 description = "0ass — recherche et verification de fonctions convertibles en assembleur"
 
 [workspace.dependencies]
